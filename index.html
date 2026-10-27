@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arachnophone</title>
+<style>
+  :root {
+    --bg: #0b0a10; --ink: #b9b4c7; --dim: #6d6880; --head: #e9e4f5;
+    --link: #7fb0ff; --proper: #ffd34d; --num: #ff6b6b; --stop: #8a8599; --heading: #c084fc;
+    --panel: rgba(58, 30, 82, .62); --yellow: #ffe600;
+  }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); scroll-behavior: auto; }
+  body { font: 17px/1.75 Georgia, "Times New Roman", serif; overflow-x: hidden; }
+  #article { max-width: 760px; margin: 0 auto; padding: 22vh 24px 70vh; position: relative; }
+  #article h1, #article h2, #article h3, #article h4 { color: var(--head); font-weight: normal; line-height: 1.3; }
+  #article h1 { font-size: 2.3em; margin: 0 0 .4em; }
+  #article h2 { font-size: 1.55em; border-bottom: 1px solid #2a2635; padding-bottom: .2em; margin-top: 1.6em; }
+  #article a { color: var(--link); text-decoration: none; }
+  #article img { max-width: 100%; height: auto; filter: saturate(1.05); }
+  #article figure, #article .thumb { margin: 1em 0; }
+  #article figcaption, #article .thumbcaption { font-size: .8em; color: var(--dim); }
+  #article .infobox { float: right; clear: right; width: 280px; margin: 0 0 1em 1.4em; font-size: .78em; line-height: 1.5;
+    border: 1px solid #2a2635; border-collapse: collapse; background: #110f18; }
+  #article .infobox th, #article .infobox td { padding: 3px 6px; vertical-align: top; text-align: left; }
+  #article .infobox-image, #article .infobox-above { text-align: center !important; }
+  #article .infobox *, #article table * { background: transparent !important; color: inherit; border-color: #2a2635 !important; }
+  #article .infobox a, #article table a { color: var(--link); }
+  #article table { color: inherit; background: transparent; max-width: 100%; }
+  #article .tright, #article figure.mw-default-size, #article figure[typeof~="mw:File/Thumb"] { float: right; clear: right; margin-left: 1.2em; max-width: 260px; }
+  #article ul, #article ol { padding-left: 1.3em; }
+  .navbox, .reflist, .references, .mw-references-wrap, .sistersitebox, .metadata, .ambox, sup.reference,
+  .mw-editsection, .noprint, .portalbox, .side-box, .shortdescription, .mw-empty-elt, .hatnote, .navbox-styles,
+  .mw-cite-backlink, .reference, style, link, .sidebar, .ombox { display: none !important; }
+  span.w.on { border-bottom: 1px dotted var(--c); color: var(--head); }
+
+  canvas#stage { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  canvas#graph { position: fixed; left: 0; right: 0; bottom: 0; width: 100%; height: 150px; pointer-events: none; z-index: 6;
+    background: var(--panel); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-top: 1px solid rgba(255,255,255,.12); }
+
+  .hud { position: fixed; z-index: 7; font: 12px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace; color: #cfc9dd; }
+  #hud-l { top: 14px; left: 16px; max-width: 46vw; }
+  #hud-l .t { color: #fff; font-size: 13px; }
+  #hud-l .path { color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #hud-r { opacity: 0; transition: opacity .6s; }
+  body.awake #hud-r { opacity: 1; }
+  #hud-r { top: 12px; right: 16px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  #hud-r button { font: inherit; color: #ddd; background: rgba(20,18,28,.8); border: 1px solid #3a3548; padding: 4px 9px; cursor: pointer; border-radius: 3px; }
+  #hud-r button:hover { border-color: #8a80a8; color: #fff; }
+  #legend { right: 16px; bottom: 162px; text-align: right; color: var(--dim); background: rgba(11,10,16,.85); padding: 6px 8px; border-radius: 3px; transition: opacity .6s; }
+  #legend.off { opacity: 0; }
+  @media (max-width: 720px) {
+    #article { padding-left: 16px; padding-right: 16px; }
+    #article .infobox, #article .tright, #article figure[typeof~="mw:File/Thumb"] { float: none; width: 100%; max-width: 100%; margin: 1em 0; }
+    #hud-l { max-width: 100%; right: 16px; top: 52px; }
+  }
+  #legend b { font-weight: normal; }
+  body.clean .hud { display: none; }
+
+  #start { position: fixed; inset: 0; z-index: 20; background: radial-gradient(ellipse at center, #1c1530 0%, #07060b 70%);
+    display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; }
+  #start .box { max-width: 560px; }
+  #start h1 { font-weight: normal; font-size: clamp(34px, 7vw, 58px); color: #fff; margin: 0 0 .2em; letter-spacing: .02em; }
+  #start p { color: #a39cb8; margin: .4em 0 1.4em; }
+  #start .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  #start input { font: 15px Georgia, serif; background: #12101a; color: #fff; border: 1px solid #3a3548; padding: 9px 12px; width: 220px; border-radius: 3px; }
+  #start button { font: 15px Georgia, serif; background: #fff; color: #0b0a10; border: 0; padding: 10px 18px; cursor: pointer; border-radius: 3px; }
+  #start button.ghost { background: transparent; color: #fff; border: 1px solid #5a5370; }
+  #start small { display: block; margin-top: 1.6em; color: #5f5873; font: 11px ui-monospace, Consolas, monospace; }
+  #fade { position: fixed; inset: 0; background: var(--bg); opacity: 0; pointer-events: none; transition: opacity .9s; z-index: 4; }
+  #fade.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="start"><div class="box">
+  <h1>Arachnophone</h1>
+  <p>A spider walks across Wikipedia.<br>Every step lands on a word, a link, a number or a picture, and the spider plays what it lands on.<br>When an article runs out, the spider follows a link it stepped on.</p>
+  <div class="row">
+    <button id="go-random">Begin on a random article</button>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <input id="go-title" placeholder="or start from… e.g. Spider" autocomplete="off">
+    <button class="ghost" id="go-named">Begin</button>
+  </div>
+  <small>headphones recommended · F fullscreen</small>
+</div></div>
+
+<div id="fade"></div>
+<main id="article"></main>
+<canvas id="stage"></canvas>
+<canvas id="graph"></canvas>
+
+<div class="hud" id="hud-r">
+  <button id="b-next" title="N">follow a link ⟶</button>
+  <button id="b-rand" title="R">random article</button>
+  <button id="b-pad" title="P">pad: on</button>
+  <button id="b-hide" title="H">hide</button>
+</div>
+
+<script>
+'use strict';
+// ───────────────────────── utilities
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const m2f = m => 440 * Math.pow(2, (m - 69) / 12);
+const NOTE = ['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+const nname = m => NOTE[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
+function hash(s) { let h = 2166136261; for (const c of s) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+
+// ───────────────────────── music theory: one key per article, natural-minor harmony, pentatonic melody
+const PENTA = [0, 3, 5, 7, 10];                        // minor pentatonic: nothing can clash
+const CHORDS = { i:[0,3,7], iv:[5,8,12], v:[7,10,14], VI:[8,12,15], III:[3,7,10], VII:[10,14,17] };
+const PROGS = [['i','VI','III','VII'], ['i','iv','VI','VII'], ['VI','VII','i','i'], ['i','VII','VI','VII']];
+const BPM = 88, S16 = 60 / BPM / 4, BARS_PER_CHORD = 2, MAX_BARS = 48;
+const STOP = new Set(('the of and a an in to is was are were be been by for on at as with from that this which it its or ' +
+  'but not his her he she they their them also has had have into than then there these those who whom whose its such ' +
+  'can may will would one all any more most other some only after before during while about over under between').split(' '));
+
+const music = { tonicPc: 2, bass: 38, prog: PROGS[0], chordIx: 0, bar: 0, pad: true };
+function setKeyFrom(title, prevPc) {
+  // first article: key from the title; every link followed moves a fifth up the circle of fifths
+  music.tonicPc = prevPc == null ? [2, 4, 5, 7, 9, 0][hash(title) % 6] : (prevPc + 7) % 12;
+  music.bass = 36 + ((music.tonicPc - 0 + 12) % 12); if (music.bass > 45) music.bass -= 12;
+  music.prog = PROGS[hash(title + '♪') % PROGS.length];
+  music.chordIx = 0; music.bar = 0;
+}
+const chordName = () => music.prog[music.chordIx];
+const chordMidis = () => CHORDS[chordName()].map(x => music.bass + 12 + x);
+function snapToChord(m) {
+  let best = m, bd = 99;
+  for (const c of CHORDS[chordName()]) for (let o = -24; o <= 36; o += 12) {
+    const cand = music.bass + c + o + 12, d = Math.abs(cand - m); if (d < bd) { bd = d; best = cand; }
+  }
+  return best;
+}
+
+// ───────────────────────── audio engine (plain Web Audio)
+let ac, master, revIn, dlyIn, noiseBuf;
+function initAudio() {
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+  master = ac.createGain(); master.gain.value = .8; master.connect(comp).connect(ac.destination);
+  // reverb: generated impulse
+  const len = ac.sampleRate * 3, ir = ac.createBuffer(2, len, ac.sampleRate);
+  for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+  const conv = ac.createConvolver(); conv.buffer = ir; revIn = ac.createGain(); revIn.gain.value = .55; revIn.connect(conv).connect(master);
+  // dotted-eighth echo
+  dlyIn = ac.createGain(); const dl = ac.createDelay(2), fb = ac.createGain(), lp = ac.createBiquadFilter();
+  dl.delayTime.value = S16 * 3; fb.gain.value = .38; lp.frequency.value = 2400;
+  dlyIn.connect(dl).connect(lp).connect(fb).connect(dl); lp.connect(master); lp.connect(revIn);
+  noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+}
+function out(node, pan = 0, rev = .25, dly = 0) {
+  const p = ac.createStereoPanner(); p.pan.value = pan; node.connect(p); p.connect(master);
+  if (rev) { const g = ac.createGain(); g.gain.value = rev; p.connect(g).connect(revIn); }
+  if (dly) { const g = ac.createGain(); g.gain.value = dly; p.connect(g).connect(dlyIn); }
+}
+function env(g, t, a, peak, d) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); }
+
+function pluck(t, m, vel, pan, dur = .9, bright = 1) {
+  const f = m2f(m), g = ac.createGain(), lp = ac.createBiquadFilter(), o1 = ac.createOscillator(), o2 = ac.createOscillator(), g2 = ac.createGain();
+  o1.type = 'triangle'; o1.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f * 2; g2.gain.value = .25;
+  lp.type = 'lowpass'; lp.Q.value = 2; lp.frequency.setValueAtTime(f * 6 * bright + 400, t); lp.frequency.exponentialRampToValueAtTime(f * 1.2 + 200, t + dur);
+  o1.connect(lp); o2.connect(g2).connect(lp); lp.connect(g); env(g, t, .006, .28 * vel, dur);
+  out(g, pan, .3, .28 * vel); o1.start(t); o2.start(t); o1.stop(t + dur + .1); o2.stop(t + dur + .1);
+}
+function bell(t, m, vel, pan) {
+  const f = m2f(m), car = ac.createOscillator(), mod = ac.createOscillator(), mg = ac.createGain(), g = ac.createGain();
+  car.frequency.value = f; mod.frequency.value = f * 3.5;
+  mg.gain.setValueAtTime(f * 2.2, t); mg.gain.exponentialRampToValueAtTime(f * .05, t + 1.4);
+  mod.connect(mg).connect(car.frequency); car.connect(g); env(g, t, .003, .2 * vel, 2.6);
+  out(g, pan, .55, .3); car.start(t); mod.start(t); car.stop(t + 3); mod.stop(t + 3);
+}
+function kick(t, vel) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .14);
+  o.connect(g); env(g, t, .002, .9 * vel, .42); out(g, 0, .05); o.start(t); o.stop(t + .5);
+}
+function hat(t, vel, pan) {
+  const s = ac.createBufferSource(), hp = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = noiseBuf; hp.type = 'highpass'; hp.frequency.value = 7500; s.connect(hp).connect(g);
+  env(g, t, .001, .16 * vel, .05); out(g, pan, .08); s.start(t, Math.random() * .5); s.stop(t + .1);
+}
+function gong(t, m) {
+  [1, 2.76, 5.4].forEach((r, i) => {
+    const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = m2f(m) * r;
+    o.connect(g); env(g, t, .01, [.16, .06, .025][i], 4.5 - i); out(g, 0, .7); o.start(t); o.stop(t + 5);
+  });
+}
+function bass(t, m, dur) {
+  const o = ac.createOscillator(), s = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+  o.type = 'triangle'; o.frequency.value = m2f(m); s.frequency.value = m2f(m - 12); lp.frequency.value = 500;
+  o.connect(lp); s.connect(lp); lp.connect(g); env(g, t, .01, .3, dur); out(g, 0, .08); o.start(t); s.start(t); o.stop(t + dur + .1); s.stop(t + dur + .1);
+}
+function padChord(t, midis, dur) {
+  if (!music.pad) return;
+  for (const m of midis) for (const det of [-7, 7]) {
+    const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = m2f(m); o.detune.value = det; lp.frequency.value = 850; lp.Q.value = .5;
+    o.connect(lp).connect(g);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.022, t + 1.2); g.gain.setValueAtTime(.022, t + dur - .6); g.gain.linearRampToValueAtTime(0, t + dur + .8);
+    out(g, det < 0 ? -.4 : .4, .6); o.start(t); o.stop(t + dur + 1);
+  }
+}
+function colorTone(t, m, sat, pan) {
+  // an image's colour, as a soft swelling voice: brighter for saturated colours
+  for (const det of [-9, 9]) {
+    const o = ac.createOscillator(), g = ac.createGain(), lp = ac.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = m2f(m); o.detune.value = det; lp.frequency.value = 300 + sat * 3200; lp.Q.value = 3;
+    o.connect(lp).connect(g); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.06, t + .08); g.gain.exponentialRampToValueAtTime(.0001, t + 1.8);
+    out(g, pan, .6, .2); o.start(t); o.stop(t + 2);
+  }
+}
+
+// ───────────────────────── Wikipedia loading
+const API = 'https://en.wikipedia.org/w/api.php';
+const CUT = new Set(['See_also','References','Notes','External_links','Further_reading','Bibliography','Sources','Citations','Footnotes','Notes_and_references']);
+const art = $('#article');
+let words = [], cursor = 0, title = '', path = [], lastLink = null, loading = false;
+
+async function randomTitle() {
+  for (let tries = 0; tries < 5; tries++) {
+    const r = await (await fetch(`${API}?action=query&list=random&rnnamespace=0&rnlimit=5&format=json&origin=*`)).json();
+    // prefer articles with some body to walk on
+    const titles = r.query.random.map(x => x.title).join('|');
+    const info = await (await fetch(`${API}?action=query&prop=info&titles=${encodeURIComponent(titles)}&format=json&origin=*`)).json();
+    const pages = Object.values(info.query.pages).sort((a, b) => b.length - a.length);
+    if (pages[0].length > 9000 || tries === 4) return pages[0].title;
+  }
+}
+async function fetchArticle(t) {
+  const r = await (await fetch(`${API}?action=parse&page=${encodeURIComponent(t)}&prop=text&format=json&formatversion=2&redirects=1&disableeditsection=1&origin=*`)).json();
+  if (r.error) throw new Error(r.error.info);
+  return { title: r.parse.title, html: r.parse.text };
+}
+const FALLBACK = { title: 'Spider (offline)', html: `<div class="mw-parser-output"><p>A <a href="/wiki/Spider">spider</a> is an air-breathing arthropod with eight legs and fangs that inject venom. Spiders are the largest order of arachnids, with more than 50,000 described species found on every continent except Antarctica.</p><h2>Silk</h2><p>Most spiders spin <a href="/wiki/Spider_silk">silk</a> from spinnerets on the abdomen. The silk is used to build webs, wrap prey, make egg sacs and to travel on the wind, a behaviour called ballooning, first described in 1827.</p><p>The <a href="/wiki/World_Wide_Web">World Wide Web</a> was named for the way its documents link to each other, like the threads of a web. A page on the web is a node, a hyperlink is a thread, and anyone reading it walks from node to node.</p><h2>Movement</h2><p>Spiders walk with an alternating tetrapod gait: legs one and three on one side move together with legs two and four on the other. Four feet are always on the ground. Jumping spiders can leap up to fifty times their own body length.</p></div>` };
+
+async function loadArticle(t, { follow = false } = {}) {
+  if (loading) return; loading = true;
+  $('#fade').classList.add('on'); await new Promise(r => setTimeout(r, 900));
+  let a;
+  try { a = await fetchArticle(t || await randomTitle()); }
+  catch (e) { console.warn('wikipedia unavailable, using offline text', e); a = FALLBACK; }
+  const prevPc = path.length ? music.tonicPc : null;
+  title = a.title; path.push(title); setKeyFrom(title, follow ? prevPc : null);
+  render(a);
+  words = [...art.querySelectorAll('span.w')]; cursor = 0; lastLink = null;
+  // place spider at the start of the article
+  const h1 = art.querySelector('h1').getBoundingClientRect();
+  spider.x = h1.left + scrollX + 40; spider.y = h1.top + scrollY + 30; spider.heading = Math.PI / 2;
+  for (const L of legs) { const p = ideal(L); L.fx = L.tx = p.x; L.fy = L.ty = p.y; L.t1 = 0; }
+  window.scrollTo(0, spider.y - innerHeight * .42); camY = scrollY;
+  pickTarget(); updateHud();
+  $('#fade').classList.remove('on'); loading = false;
+}
+
+function render(a) {
+  const tpl = document.createElement('template'); tpl.innerHTML = a.html;
+  const root = tpl.content.querySelector('.mw-parser-output') || tpl.content;
+  // cut the article at "See also" / "References"
+  let cut = null;
+  for (const h of root.querySelectorAll('h2')) if (CUT.has(h.id)) { cut = h.closest('.mw-heading') || h; break; }
+  if (cut) { while (cut.nextSibling) cut.nextSibling.remove(); cut.remove(); }
+  root.querySelectorAll('.navbox, .reflist, .mw-references-wrap, .metadata, .ambox, sup.reference, style, link, .sidebar, .noprint, .hatnote, .shortdescription').forEach(n => n.remove());
+  for (const img of root.querySelectorAll('img')) {
+    img.crossOrigin = 'anonymous';
+    const s = img.getAttribute('src'); if (s && s.startsWith('//')) img.setAttribute('src', 'https:' + s);
+    img.removeAttribute('srcset'); img.loading = 'eager';
+  }
+  for (const a of root.querySelectorAll('a')) { a.removeAttribute('title'); }
+  art.innerHTML = `<h1>${a.title}</h1>`; art.appendChild(root);
+  for (const img of art.querySelectorAll('img')) img.addEventListener('load', () => sampleImage(img), { once: true });
+  wrapWords(art);
+}
+function wrapWords(rootEl) {
+  const tw = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, { acceptNode: n => /\S/.test(n.data) && !n.parentElement.closest('style,script') ? 1 : 2 });
+  const nodes = []; while (tw.nextNode()) nodes.push(tw.currentNode);
+  for (const n of nodes) {
+    const frag = document.createDocumentFragment();
+    for (const tok of n.data.split(/(\s+)/)) {
+      if (!tok) continue;
+      if (/^\s+$/.test(tok)) { frag.appendChild(document.createTextNode(tok)); continue; }
+      const s = document.createElement('span'); s.className = 'w'; s.textContent = tok; frag.appendChild(s);
+    }
+    n.replaceWith(frag);
+  }
+}
+
+// ───────────────────────── what did the foot land on?
+const SAMPLE = 20;
+function sampleImage(img) {
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = SAMPLE; const g = c.getContext('2d');
+    g.drawImage(img, 0, 0, SAMPLE, SAMPLE); img._px = g.getImageData(0, 0, SAMPLE, SAMPLE).data;
+  } catch (e) { img._px = null; }
+}
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+  if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  return [h, s, l];
+}
+function classify(el, vx, vy) {
+  if (!el || !art.contains(el)) return null;
+  if (el.tagName === 'IMG') {
+    const r = el.getBoundingClientRect(); let rgb;
+    if (el._px) { const px = clamp(Math.floor((vx - r.left) / r.width * SAMPLE), 0, SAMPLE - 1), py = clamp(Math.floor((vy - r.top) / r.height * SAMPLE), 0, SAMPLE - 1), i = (py * SAMPLE + px) * 4;
+      rgb = [el._px[i], el._px[i + 1], el._px[i + 2]]; }
+    else { const h = hash(el.src); rgb = [h & 255, (h >> 8) & 255, (h >> 16) & 255]; }
+    const [h, s, l] = rgbToHsl(...rgb);
+    return { kind: 'image', el, hsl: [h, s, l], color: `rgb(${rgb})`, label: `pixel ${rgb.join(',')}` };
+  }
+  if (!el.classList.contains('w')) return null;
+  const raw = el.textContent, w = raw.replace(/[^\p{L}\p{N}'’-]/gu, '');
+  if (!w) return null;
+  const low = w.toLowerCase();
+  let kind = 'word';
+  if (el.closest('h1,h2,h3,h4')) kind = 'heading';
+  else if (el.closest('a')) kind = 'link';
+  else if (/\d/.test(w)) kind = 'number';
+  else if (STOP.has(low)) kind = 'stop';
+  else if (/^\p{Lu}/u.test(w)) kind = 'proper';
+  return { kind, el, word: w, low, color: `var(--${{ word: 'ink', proper: 'proper', link: 'link', number: 'num', stop: 'stop', heading: 'heading' }[kind]})`, label: w };
+}
+function probe(x, y) {
+  // look around the planned foot position for something to stand on; feet settle on the text line
+  for (const [dx, dy] of [[0, 0], [5, 0], [-5, 0], [0, 7], [0, -7], [9, 9], [-9, -9], [12, -4], [-12, 4]]) {
+    const vx = x + dx - scrollX, vy = y + dy - scrollY;
+    if (vx < 0 || vy < 0 || vx > innerWidth || vy > innerHeight - 150) continue;
+    const el = document.elementFromPoint(vx, vy), hit = classify(el, vx, vy);
+    if (hit) {
+      if (hit.kind !== 'image') { const r = el.getBoundingClientRect(); return { x: x + dx, y: r.top + r.height * .62 + scrollY, hit }; }
+      return { x: x + dx, y: y + dy, hit };
+    }
+  }
+  return { x, y, hit: null };
+}
+
+// ───────────────────────── the spider
+const spider = { x: 0, y: 0, heading: 0, speed: 0, tx: 0, ty: 0, rest: 0, targetEl: null };
+const LEG_ANG = [32, 68, 108, 148].map(d => d * Math.PI / 180), REACH = [92, 80, 76, 86], FEMUR = 52, TIBIA = 62;
+const legs = [];
+for (const side of [-1, 1]) for (let i = 0; i < 4; i++)
+  legs.push({ side, i, ang: side * LEG_ANG[i], reach: REACH[i], group: (i + (side > 0 ? 1 : 0)) % 2,
+    fx: 0, fy: 0, sx: 0, sy: 0, tx: 0, ty: 0, t0: 0, t1: 0 });
+function hip(L) { const a = spider.heading + L.side * (.5 + L.i * .55); return { x: spider.x + Math.cos(a) * 7, y: spider.y + Math.sin(a) * 7 }; }
+function ideal(L) {
+  const a = spider.heading + L.ang, lead = spider.speed * .45;
+  return { x: spider.x + Math.cos(a) * L.reach + Math.cos(spider.heading) * lead, y: spider.y + Math.sin(a) * L.reach + Math.sin(spider.heading) * lead };
+}
+function footPos(L, now) {
+  if (now >= L.t1 || L.t1 === 0) return { x: L.tx, y: L.ty, lift: 0 };
+  const p = clamp((now - L.t0) / (L.t1 - L.t0), 0, 1), e = ease(p);
+  return { x: lerp(L.sx, L.tx, e), y: lerp(L.sy, L.ty, e), lift: Math.sin(p * Math.PI) };
+}
+function pickTarget(el) {
+  if (el) { const r = el.getBoundingClientRect(); spider.tx = r.left + r.width / 2 + scrollX; spider.ty = r.top + r.height / 2 + scrollY; spider.targetEl = el; return; }
+  spider.targetEl = null;
+  // read forward through the article, wandering a little; links are tempting
+  for (let tries = 0; tries < 30; tries++) {
+    const j = cursor + 6 + Math.floor(Math.random() * 45);
+    if (j >= words.length) { spider.tx = null; return; }
+    let pick = words[j];
+    for (let k = j; k < Math.min(words.length, j + 12); k++) if (words[k].closest('a') && Math.random() < .5) { pick = words[k]; break; }
+    const r = pick.getBoundingClientRect();
+    if (!r.width) continue;
+    const x = r.left + r.width / 2 + scrollX, y = r.top + r.height / 2 + scrollY;
+    if (Math.hypot(x - spider.x, y - spider.y) < 70) { cursor = j; continue; }
+    cursor = j; spider.tx = x; spider.ty = y; return;
+  }
+}
+let lastFrame = performance.now(), camY = 0;
+function moveBody(dt) {
+  if (spider.tx == null) { spider.speed *= .9; return; }
+  if (spider.rest > 0) { spider.rest -= dt; spider.speed *= .9; return; }
+  const dx = spider.tx - spider.x, dy = spider.ty - spider.y, d = Math.hypot(dx, dy);
+  if (d < 14) {
+    if (pendingLink && spider.targetEl === pendingLink) { const a = pendingLink; pendingLink = null; followLink(a); return; }
+    if (Math.random() < .12) spider.rest = S16 * 16;    // pause for a bar: the music breathes
+    pickTarget(); return;
+  }
+  let da = Math.atan2(dy, dx) - spider.heading; da = Math.atan2(Math.sin(da), Math.cos(da));
+  spider.heading += clamp(da, -1.7 * dt, 1.7 * dt);
+  const want = 36 * clamp(d / 70, .35, 1) * Math.max(0, Math.cos(da));
+  spider.speed = lerp(spider.speed, want, .06);
+  spider.x += Math.cos(spider.heading) * spider.speed * dt; spider.y += Math.sin(spider.heading) * spider.speed * dt;
+}
+
+// ───────────────────────── sequencer: legs only land on the grid, so every step is in time
+let nextT = 0, tick = 0, running = false, endPending = false;
+const footprints = [], melody = [];
+function scheduler() {
+  if (!running) return;
+  while (nextT < ac.currentTime + .12) { onTick(tick, nextT); nextT += S16; tick++; }
+}
+function onTick(n, t) {
+  if (n % 16 === 0) {
+    if (n % (16 * BARS_PER_CHORD) === 0) {
+      if (n) music.chordIx = (music.chordIx + 1) % 4;
+      padChord(t, chordMidis(), S16 * 16 * BARS_PER_CHORD);
+    }
+    setTimeout(updateHud, (t - ac.currentTime) * 1000);
+    music.bar++;
+    if ((music.bar > MAX_BARS || spider.tx == null) && !endPending && !loading && n % 32 === 0) { endPending = true; setTimeout(() => { endPending = false; followLink(); }, (t - ac.currentTime) * 1000); }
+  }
+  if (music.bar > 2) {
+    const root = music.bass + CHORDS[chordName()][0];
+    if (n % 16 === 0) bass(t, root, S16 * 5);
+    if (n % 16 === 6) bass(t, root, S16 * 3);
+    if (n % 16 === 10) bass(t, root + 12, S16 * 2);
+  }
+  // odd ticks: one gait group lifts now and lands on the next (even) sixteenth
+  if (n % 2 === 1 && !loading) {
+    const group = ((n + 1) / 2) % 2, land = t + S16, strong = (n + 1) % 8 === 0;
+    const hits = [];
+    for (const L of legs) {
+      if (L.group !== group || ac.currentTime < L.t1) continue;
+      const p = ideal(L);
+      if (Math.hypot(p.x - L.tx, p.y - L.ty) < 20) continue;
+      const pr = probe(p.x, p.y);
+      L.sx = L.tx; L.sy = L.ty; L.tx = pr.x; L.ty = pr.y; L.t0 = t; L.t1 = land;
+      hits.push({ L, ...pr });
+    }
+    if (hits.length) play(hits, land, strong);
+  }
+}
+const PRIORITY = { image: 4, proper: 3, heading: 3, link: 2.5, word: 2, number: 1, stop: 0 };
+function play(hits, t, strong) {
+  const pan = L => L.side * (.25 + L.i * .12);
+  const melodic = [];
+  let kicked = false, gonged = false;
+  for (const h of hits) {
+    const k = h.hit && h.hit.kind;
+    footprints.push({ x: h.x, y: h.y, t, color: h.hit ? h.hit.color : 'rgba(255,255,255,.25)', kind: k });
+    if (!k) continue;
+    flash(h.hit, t);
+    if (k === 'number' && !kicked) { kick(t, 1); kicked = true; }
+    else if (k === 'stop') hat(t, .8 + Math.random() * .3, pan(h.L));
+    else if (k === 'heading' && !gonged) { gong(t, music.bass + CHORDS[chordName()][0]); gonged = true; }
+    else if (k !== 'number' && k !== 'stop' && k !== 'heading') melodic.push(h);
+  }
+  melodic.sort((a, b) => PRIORITY[b.hit.kind] - PRIORITY[a.hit.kind]);
+  melodic.forEach((h, idx) => {
+    const hit = h.hit, main = idx === 0;
+    let m;
+    if (hit.kind === 'image') {
+      const [hue, sat, lig] = hit.hsl;
+      m = music.bass + 24 + PENTA[Math.floor(hue / 72) % 5] + 12 * Math.round(lig * 1.6);
+      if (strong) m = snapToChord(m);
+      colorTone(t, m, sat, pan(h.L));
+    } else {
+      // the same word always makes the same note (in a given key): leitmotifs emerge
+      const hv = hash(hit.low);
+      m = music.bass + 24 + PENTA[hv % 5] + (hit.word.length > 7 ? 12 : 0);
+      if (hit.kind === 'proper') m += 12;
+      if (strong) m = snapToChord(m);
+      if (hit.kind === 'link') lastLink = hit.el.closest('a');
+      if (!main) pluck(t, m - 12, .32, pan(h.L), .5, .6);
+      else if (hit.kind === 'link') bell(t, m + 12, 1, pan(h.L));
+      else pluck(t, m, hit.kind === 'proper' ? 1.15 : .9, pan(h.L), hit.kind === 'proper' ? 1.6 : .9);
+    }
+    if (main) melody.push({ t, m, color: hit.color, label: hit.label, kind: hit.kind });
+  });
+  if (melody.length > 400) melody.splice(0, 100);
+}
+function flash(hit, t) {
+  const ms = Math.max(0, (t - ac.currentTime) * 1000);
+  setTimeout(() => {
+    if (hit.kind === 'image') return;
+    hit.el.style.setProperty('--c', hit.color); hit.el.classList.add('on');
+    hit.el.animate([{ backgroundColor: 'rgba(255,255,255,.28)', color: '#fff' }, { backgroundColor: 'transparent' }], { duration: 900, easing: 'ease-out' });
+  }, ms);
+}
+
+// ───────────────────────── following links = the dérive
+let pendingLink = null;
+function linkTitle(a) {
+  const h = a && a.getAttribute('href'); if (!h || !h.startsWith('/wiki/')) return null;
+  const t = decodeURIComponent(h.slice(6).split('#')[0]).replace(/_/g, ' ');
+  return t.includes(':') ? null : t;
+}
+function followLink(a) {
+  if (loading) return;
+  let t = linkTitle(a) || linkTitle(lastLink);
+  if (!t) { const all = [...art.querySelectorAll('a')].map(linkTitle).filter(Boolean); t = all[Math.floor(Math.random() * all.length)]; }
+  gong(ac.currentTime + .05, music.bass);
+  loadArticle(t, { follow: true });
+}
+art.addEventListener('click', e => {
+  const a = e.target.closest('a'); if (a) e.preventDefault();
+  if (a && linkTitle(a)) { pendingLink = a; pickTarget(a.querySelector('span.w') || a); spider.rest = 0; return; }
+  // click anywhere: the spider walks there
+  spider.tx = e.pageX; spider.ty = e.pageY; spider.rest = 0; spider.targetEl = null;
+});
+
+// ───────────────────────── drawing
+const stage = $('#stage'), sg = stage.getContext('2d'), graph = $('#graph'), gg = graph.getContext('2d');
+function resize() {
+  const d = devicePixelRatio || 1;
+  stage.width = innerWidth * d; stage.height = innerHeight * d; sg.setTransform(d, 0, 0, d, 0, 0);
+  graph.width = innerWidth * d; graph.height = 150 * d; gg.setTransform(d, 0, 0, d, 0, 0);
+}
+addEventListener('resize', resize); resize();
+
+function drawSpider(now) {
+  sg.clearRect(0, 0, innerWidth, innerHeight);
+  const ox = scrollX, oy = scrollY;
+  // footprints: rings that open at the moment of landing
+  for (let i = footprints.length - 1; i >= 0; i--) {
+    const f = footprints[i], age = now - f.t;
+    if (age > 1.6) { footprints.splice(i, 1); continue; }
+    if (age < 0) continue;
+    sg.globalAlpha = (1 - age / 1.6) * (f.kind ? .9 : .35);
+    sg.strokeStyle = f.kind ? getColor(f.color) : '#fff'; sg.lineWidth = 1;
+    sg.beginPath(); sg.arc(f.x - ox, f.y - oy, 3 + age * (f.kind ? 26 : 8), 0, Math.PI * 2); sg.stroke();
+  }
+  sg.globalAlpha = 1;
+  // intent: a faint wire to where it's heading (like the node wires in the reference)
+  if (spider.tx != null) {
+    sg.setLineDash([2, 5]); sg.strokeStyle = 'rgba(140,130,255,.35)'; sg.beginPath();
+    sg.moveTo(spider.x - ox, spider.y - oy); sg.lineTo(spider.tx - ox, spider.ty - oy); sg.stroke(); sg.setLineDash([]);
+    sg.strokeStyle = 'rgba(120,120,255,.6)'; sg.beginPath(); sg.arc(spider.tx - ox, spider.ty - oy, 5, 0, 7); sg.stroke();
+  }
+  for (const L of legs) {
+    const h = hip(L), f = footPos(L, now);
+    const hx = h.x - ox, hy = h.y - oy, fx = f.x - ox, fy = f.y - oy;
+    // two-bone IK; the knee bends away from the body and rises while the leg is in the air
+    const d = Math.min(Math.hypot(fx - hx, fy - hy), FEMUR + TIBIA - 1), base = Math.atan2(fy - hy, fx - hx);
+    const k = Math.acos(clamp((FEMUR * FEMUR + d * d - TIBIA * TIBIA) / (2 * FEMUR * d), -1, 1));
+    const sgn = L.side, femur = FEMUR * (1 + f.lift * .15);
+    const kx = hx + Math.cos(base - sgn * k) * femur, ky = hy + Math.sin(base - sgn * k) * femur;
+    sg.strokeStyle = `rgba(240,236,255,${.75 + f.lift * .25})`; sg.lineWidth = 1.3 + f.lift * .5;
+    sg.beginPath(); sg.moveTo(hx, hy);
+    sg.quadraticCurveTo(lerp(hx, kx, .5) - Math.sin(base) * sgn * 8, lerp(hy, ky, .5) + Math.cos(base) * sgn * 8, kx, ky);
+    sg.quadraticCurveTo(lerp(kx, fx, .5) - Math.sin(base) * sgn * 5, lerp(ky, fy, .5) + Math.cos(base) * sgn * 5, fx, fy);
+    sg.stroke();
+    sg.fillStyle = '#fff'; sg.beginPath(); sg.arc(kx, ky, 1.6, 0, 7); sg.fill();
+    // IK target circle, as in the TouchDesigner reference
+    if (f.lift > 0) { sg.strokeStyle = 'rgba(90,110,255,.9)'; sg.beginPath(); sg.arc(L.tx - ox, L.ty - oy, 6, 0, 7); sg.stroke(); }
+    else { sg.fillStyle = 'rgba(255,255,255,.9)'; sg.beginPath(); sg.arc(fx, fy, 1.8, 0, 7); sg.fill(); }
+  }
+  // body: cephalothorax + abdomen, breathing slightly
+  const bx = spider.x - ox, by = spider.y - oy, hd = spider.heading, br = 1 + Math.sin(now * 2.2) * .04;
+  sg.save(); sg.translate(bx, by); sg.rotate(hd);
+  sg.fillStyle = '#0b0a10'; sg.strokeStyle = '#f2eeff'; sg.lineWidth = 1.3;
+  sg.beginPath(); sg.ellipse(-17, 0, 15 * br, 11 * br, 0, 0, 7); sg.fill(); sg.stroke();
+  sg.beginPath(); sg.ellipse(2, 0, 9, 7.5, 0, 0, 7); sg.fill(); sg.stroke();
+  sg.fillStyle = '#f2eeff'; for (const s of [-1, 1]) { sg.beginPath(); sg.arc(9, s * 2.6, 1.4, 0, 7); sg.fill(); }
+  sg.strokeStyle = 'rgba(242,238,255,.5)'; sg.beginPath(); sg.moveTo(-28, 0); sg.lineTo(-8, 0); sg.stroke();
+  sg.restore();
+}
+const colorCache = {};
+function getColor(c) {
+  if (!c.startsWith('var(')) return c;
+  return colorCache[c] || (colorCache[c] = getComputedStyle(document.documentElement).getPropertyValue(c.slice(4, -1)).trim());
+}
+
+// the "function graph": the melody as a curve, a yellow dot riding it, the chord written as a sum of sines
+function drawGraph(now) {
+  const W = innerWidth, H = 150, ax = 70, midY = H * .52;
+  gg.clearRect(0, 0, W, H);
+  const span = 10, x0 = now - span * .78, X = t => ax + (t - x0) / span * (W - ax - 20);
+  const lo = music.bass + 12, hi = music.bass + 50, Y = m => H - 18 - (m - lo) / (hi - lo) * (H - 36);
+  // axes
+  gg.strokeStyle = 'rgba(255,255,255,.55)'; gg.lineWidth = 1;
+  gg.beginPath(); gg.moveTo(ax, H - 12); gg.lineTo(W - 14, H - 12); gg.moveTo(ax, H - 8); gg.lineTo(ax, 10); gg.stroke();
+  gg.fillStyle = 'rgba(255,255,255,.7)'; gg.font = 'italic 12px Georgia, serif'; gg.fillText('t', W - 12, H - 8); gg.fillText('y', ax - 4, 9);
+  // bar lines
+  gg.strokeStyle = 'rgba(255,255,255,.07)';
+  const barLen = S16 * 16, b0 = Math.ceil((x0 - nextT0) / barLen);
+  for (let b = b0; ; b++) { const t = nextT0 + b * barLen, x = X(t); if (x > W) break; gg.beginPath(); gg.moveTo(x, 10); gg.lineTo(x, H - 12); gg.stroke(); }
+  // the chord as a function: y = Σ sin(2π f t)
+  const fs = chordMidis().map(m2f);
+  gg.strokeStyle = 'rgba(200,170,255,.28)'; gg.beginPath();
+  for (let x = ax; x < W - 14; x += 2) {
+    const tt = (x - ax) / 900 + now * .15; let y = 0; for (const f of fs) y += Math.sin(tt * f * .09);
+    x === ax ? gg.moveTo(x, midY - y * 9) : gg.lineTo(x, midY - y * 9);
+  }
+  gg.stroke();
+  // melody curve
+  const pts = melody.filter(e => e.t > x0 - 2 && e.t <= now).map(e => ({ x: X(e.t), y: Y(e.m), e }));
+  if (pts.length > 1) {
+    gg.strokeStyle = 'rgba(255,255,255,.85)'; gg.lineWidth = 1.4; gg.beginPath(); gg.moveTo(pts[0].x, pts[0].y);
+    for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], mx = (a.x + b.x) / 2; gg.bezierCurveTo(mx, a.y, mx, b.y, b.x, b.y); }
+    gg.lineTo(X(now), pts[pts.length - 1].y); gg.stroke();
+  }
+  for (const p of pts) { gg.fillStyle = getColor(p.e.color); gg.beginPath(); gg.arc(p.x, p.y, 3, 0, 7); gg.fill(); }
+  const last = pts[pts.length - 1];
+  if (last) {
+    gg.fillStyle = '#ffe600'; gg.beginPath(); gg.arc(X(now), last.y, 5, 0, 7); gg.fill();
+    gg.font = '11px ui-monospace, Consolas, monospace'; gg.fillStyle = '#fff';
+    gg.fillText(`“${last.e.label}” → ${nname(last.e.m)} · ${m2f(last.e.m).toFixed(1)} Hz · ${last.e.kind}`, X(now) + 10, Math.max(22, last.y - 8));
+  }
+  gg.font = 'italic 13px Georgia, serif'; gg.fillStyle = 'rgba(255,255,255,.8)';
+  gg.fillText('y = ' + fs.map(f => `sin(2π·${f.toFixed(1)}t)`).join(' + '), ax + 10, 24);
+}
+let nextT0 = 0;
+
+function frame() {
+  requestAnimationFrame(frame);
+  if (!running) return;
+  const p = performance.now(), dt = Math.min(.05, (p - lastFrame) / 1000); lastFrame = p;
+  if (!loading) moveBody(dt);
+  // camera follows the spider
+  camY = lerp(camY, spider.y - innerHeight * .42, .05);
+  if (Math.abs(scrollY - camY) > .5) window.scrollTo(0, camY);
+  const now = ac.currentTime;
+  drawSpider(now); drawGraph(now);
+}
+
+// ───────────────────────── HUD & controls
+function updateHud() { document.title = title ? `${title} · Arachnophone` : 'Arachnophone'; }
+async function begin(t) {
+  $('#start').style.display = 'none';
+  initAudio(); await ac.resume();
+  running = true; nextT = nextT0 = ac.currentTime + .25; tick = 0;
+  setInterval(scheduler, 25);
+  await loadArticle(t || null);
+}
+$('#go-random').onclick = () => begin();
+$('#go-named').onclick = () => begin($('#go-title').value.trim() || null);
+$('#go-title').onkeydown = e => { if (e.key === 'Enter') $('#go-named').click(); };
+$('#b-next').onclick = () => followLink();
+$('#b-rand').onclick = () => { path = []; loadArticle(null); };
+$('#b-pad').onclick = () => { music.pad = !music.pad; $('#b-pad').textContent = 'pad: ' + (music.pad ? 'on' : 'off'); };
+$('#b-hide').onclick = () => document.body.classList.toggle('clean');
+addEventListener('keydown', e => {
+  if (!running || e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (k === 'n') followLink(); else if (k === 'r') $('#b-rand').click(); else if (k === 'p') $('#b-pad').click();
+  else if (k === 'h') document.body.classList.toggle('clean');
+  else if (k === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+});
+// controls only appear while the mouse moves
+let idleTimer;
+addEventListener('mousemove', () => {
+  document.body.classList.add('awake'); clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => document.body.classList.remove('awake'), 2500);
+});
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
